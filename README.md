@@ -1,7 +1,7 @@
 Million Books
 ============
 
-Search and analysis into the Million Books n-gram corpus using Cassandra,
+Search and analysis into books from Wikipedia using Cassandra,
 Hadoop, and Solr.
 
 
@@ -15,9 +15,18 @@ Install the Python requirements with pip.
 
 Download Data
 -------------
-Run the scraping program and [download](http://storage.googleapis.com/books/ngrams/books/datasetsv2.html)
-the n-gram corpus from Google.
+Run the scraping program to download and index book metatdata from Wikipedia.
 
 Index into Cassandra
 --------------------
 Index the data into Cassandra.
+
+Notes
+-----
+This cassandra.yaml is symlinked to /etc/dse/cassandra/cassandra.yaml to
+keep production up to date.
+
+You may see `Cannot determine CASSANDRA_CONF` after trying to start the
+dse service.
+
+Append `CASSANDRA_CONF="/etc/dse/cassandra"` to `/etc/init.d/dse`.

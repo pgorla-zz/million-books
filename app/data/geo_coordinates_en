@@ -62,4 +62,4 @@
 <http://dbpedia.org/resource/Aberdeenshire> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opengis.net/gml/_Feature> .
 <http://dbpedia.org/resource/Aberdeenshire> <http://www.w3.org/2003/01/geo/wgs84_pos#lat> "57.151"^^<http://www.w3.org/2001/XMLSchema#float> .
 <http://dbpedia.org/resource/Aberdeenshire> <http://www.w3.org/2003/01/geo/wgs84_pos#long> "-2.123"^^<http://www.w3.org/2001/XMLSchema#float> .
-<http://dbpedia.org/resource/Aberdeenshire> <http://www.w3.org/2003/01/geo/wgs84_pos#long> "57.151 -2.123"@en .
+<http://dbpedia.org/resource/Aberdeenshire> <http://www.w3.org/2003/01/geo/wgs84_pos#point> "57.151 -2.123"@en .

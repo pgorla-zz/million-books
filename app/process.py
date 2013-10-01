@@ -1,40 +1,40 @@
 #!/usr/bin/env python
 
-from multiprocessing import Pool
-from urllib2 import urlopen
-from urlparse import urlparse
+import bz2
 import os, sys
+import re
+import uuid
 
-from bs4 import BeautifulSoup
+from multiprocessing import Pool
 
-# TODO Move into separate config.
-SCRAPE_URL = "http://storage.googleapis.com/books/ngrams/books/datasetsv2.html"
-DATA_DIR = "/var/million-books/data"
-CHUNK = 16 * 1024
+from pycassa.pool import ConnectionPool
+from pycassa.columnfamily import ColumnFamily
 
-soup = BeautifulSoup(urlopen(SCRAPE_URL))
+# TODO Split out tasks into threads.
+DATA_DIR = "data/"
 
-# Get all of the gunzipped files from the 'a' tags on the page.
-# At 30222 links as of 26 Juillet 2013.
-links = [link for link in [a.get("href") for a in soup.findAll("a")] \
-            if link.endswith("gz")]
-
-def download(link):
-    l = urlopen(link)
-    name = urlparse(link).path.split('/')[-1]
-    # TODO Ensure directory exists.
-    # TODO Check that the file exists before overwriting it.
-    with open(os.path.join(DATA_DIR,name), "wb") as fin:
-        while True:
-            chunk = l.read(CHUNK)
-            if not chunk: break
-            fin.write(chunk)
-    print("%s written." % os.path.join(DATA_DIR, name))
+# Connect to 'solr' keyspace
+pool = ConnectionPool("solr", ["localhost:9160"])
+# Connect to 'geosearch' column family
+cf = ColumnFamily(pool, "geosearch")
 
 
-def run():
-    # What's a reasonable number here? The m1.large has 2 cores.
-    pool = Pool(processes=50)
-    # TODO Find a better way to end these processes.
-    # NOTE End processes with `pkill -f python`
-    pool.map(download, links)
+# Produces "57.151 -2.123"@en . 
+point_pattern = re.compile("\"(.*)\"\@en \.")
+name_pattern = re.compile("^\<http://dbpedia.org/resource/(\w+)")
+
+pattern = re.compile(r'^\<http://dbpedia.org/resource/(?P<name>\w+).*\"(?P<point>.*)\"\@en \.')
+
+def parse_line(line):
+    if pattern.match(line):
+        name = pattern.search(line).group('name')
+        cf.insert(str(uuid.uuid4()), {
+            "name": name.replace("_", " "),
+            "location": pattern.search(line).group('point')
+            })
+    pass
+
+if __name__ == "__main__":
+    threadpool = Pool(10)
+    with bz2.BZ2File("data/geo_coordinates_en.nt.bz2", "rb") as fin:
+        threadpool.map(parse_line, fin, 4)

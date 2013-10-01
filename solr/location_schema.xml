@@ -19,8 +19,11 @@
  <fields>
     <field name="id"  type="string" indexed="true"  stored="true"/>
     <field name="name"  type="text" indexed="true"  stored="true"/>
+    <field name="tags"  type="text" indexed="true"  stored="true" multiValued="true"/>
     <field name="location"  type="location" indexed="true"  stored="true"/>
+
     <dynamicField name="*_coordinate" type="tdouble" indexed="true" stored="true"/>
+    <dynamicField name="*_person" type="text" indexed="true" stored="true"/>
  </fields>
 
  <types>

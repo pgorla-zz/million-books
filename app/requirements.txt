@@ -1,1 +1,7 @@
 BeautifulSoup4
+
+pysolr
+lxml
+cssselect
+
+pycassa

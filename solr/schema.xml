@@ -18,7 +18,7 @@
 <schema name="million-books" version="1.5">
  <fields>
     <field name="id"  type="string" indexed="true"  stored="true"/>
-    <field name="name"  type="text_general" indexed="true"  stored="true"/>
+    <field name="name"  type="text" indexed="true"  stored="true"/>
     <field name="location"  type="location" indexed="true"  stored="true"/>
     <dynamicField name="*_coordinate" type="tdouble" indexed="true" stored="true"/>
  </fields>
@@ -26,24 +26,26 @@
  <types>
   <fieldType name="string" class="solr.StrField"/>
   <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
-  <fieldType name="tdouble" class="solr.TrieDoubleField" precisionStep="8" positionIncrementGap="O"/>
+  <fieldType name="tdouble" class="solr.TrieDoubleField" precisionStep="8" positionIncrementGap="0"/>
 
   <fieldType name="text" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory"/>
+        <!--
         <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+        <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/> -->
         <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.EnglishPossessiveFilterFactory"/>
-        <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
         <filter class="solr.PorterStemFilterFactory"/>
       </analyzer>
       <analyzer type="query">
         <tokenizer class="solr.StandardTokenizerFactory"/>
+        <!--
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+        <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/> -->
         <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.EnglishPossessiveFilterFactory"/>
-        <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
         <filter class="solr.PorterStemFilterFactory"/>
       </analyzer>
     </fieldType>

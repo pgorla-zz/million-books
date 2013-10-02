@@ -15,21 +15,24 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<schema name="location" version="1.5">
+<schema name="person" version="1.5">
  <fields>
     <field name="id"  type="string" indexed="true"  stored="true"/>
     <field name="name"  type="text" indexed="true"  stored="true"/>
-    <field name="tags"  type="text" indexed="true"  stored="true" multiValued="true"/>
-    <field name="location"  type="location" indexed="true"  stored="true"/>
 
-    <dynamicField name="*_coordinate" type="tdouble" indexed="true" stored="true"/>
-    <dynamicField name="*_person" type="text" indexed="true" stored="true"/>
+    <field name="birthDate"  type="date" indexed="true"  stored="true"/>
+    <field name="deathDate"  type="date" indexed="true"  stored="true"/>
+
+    <field name="birthPlace"  type="text" indexed="true"  stored="true"/>
+    <field name="deathPlace"  type="text" indexed="true"  stored="true"/>
+
+    <!-- Faux multivalued field. We do what we can. -->
+    <dynamicField name="*_tag"  type="text" indexed="true"  stored="true"/>
  </fields>
 
  <types>
   <fieldType name="string" class="solr.StrField"/>
-  <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
-  <fieldType name="tdouble" class="solr.TrieDoubleField" precisionStep="8" positionIncrementGap="0"/>
+  <fieldType name="date" class="solr.TrieDateField"/>
 
   <fieldType name="text" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">

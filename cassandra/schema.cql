@@ -7,8 +7,13 @@ create keyspace solr
 
 create table location (
     id text primary key
-);
+) with compact storage;
 
 create table person (
-    id text primary key
-);
+    id text primary key,
+    name text,
+    birthDate DateType,
+    deathDate DateType,
+    birthPlace text,
+    deathPlace text
+) with compact storage;

@@ -7,6 +7,7 @@ import os, sys
 import random
 import re
 
+from datetime import datetime
 from multiprocessing import Pool
 
 from pycassa.pool import ConnectionPool
@@ -18,19 +19,11 @@ import pysolr
 # TODO Split out tasks into threads.
 DATA_DIR = "data/"
 
-solr = pysolr.Solr("http://localhost:8983/solr/resource/solr.person/")
-
-# Connect to 'solr' keyspace
-pool = ConnectionPool("solr", ["localhost:9160"])
-
-location_cf = ColumnFamily(pool, "location")
-person_cf = ColumnFamily(pool, "person")
-
-
 kv_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         (?P<name>\w+)       # Resource name
+        (?!.*Date> )        # Don't match birthdate, deathdate
         .*\"(?P<value>.*)   # Value
-        \"\@en \.''', re.VERBOSE)
+        \"''', re.VERBOSE)
 
 # Birth and death place
 event_loc_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
@@ -46,8 +39,16 @@ event_date_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         (?P<name>\w+)       # Resource name
         .*\>.*\<http://dbpedia.org/ontology/
         (?P<event>birthDate|deathDate)\> # Birth or death
-        .*\"(?P<date>.*)\" # Date
+        .*\"(?P<date>.*)\"  # Date
         ''', re.VERBOSE)
+
+solr = pysolr.Solr("http://localhost:8983/solr/resource/solr.person/")
+
+# Connect to 'solr' keyspace
+pool = ConnectionPool("solr", ["localhost:9160"])
+
+location_cf = ColumnFamily(pool, "location")
+person_cf = ColumnFamily(pool, "person")
 
 
 def parse_life(line):
@@ -64,33 +65,34 @@ def parse_life(line):
 
         # TODO Counter column of births, deaths
         location_cf.insert(loc, {
-            "%s_person" % shortname: name
+            "%s_person" % shortname: str(name)
             })
 
         person_cf.insert(name, {
             "name": name,
-            # Solr dynamic field names cannot have spaces.
             event: loc
             })
 
+def parse_date(line):
     if event_date_pattern.match(line):
         name = event_date_pattern.search(line).group('name').replace("_", " ")
         event = event_date_pattern.search(line).group('event')
-        date = event_date_pattern.search(line).group('date')
+        _date = event_date_pattern.search(line).group('date')
+        try:
+            date = datetime.strptime(_date, "%Y-%m-%d")
+        except ValueError:
+            date = None
+
         try:
             shortname = name.split()[0]
         except IndexError:
             shortname = name
 
-        print(name, event, date)
-
         person_cf.insert(name, {
             "name": name,
-            # Solr dynamic field names cannot have spaces.
-            event: date
+            # Manually force into UTC time.
+            event: "%sZ" % date.isoformat()
             })
-
-
 
 def parse_location(line):
     if kv_pattern.match(line):
@@ -106,24 +108,26 @@ def parse_tags(line):
         name = kv_pattern.search(line).group('name').replace("_", " ")
         value = str(kv_pattern.search(line).group('value'))
         value_tag = "%s_tag" % random.randint(0,10)
+        print(name, value, value_tag)
         person_cf.insert(name, {
             "name": name,
-            # Solr dynamic field names cannot have spaces.
             value_tag: value
             })
     pass
 
 
-
 if __name__ == "__main__":
     # NOTE: Pycassa not threadsafe; need to create a new
     # connection per thread.
-    filename = sys.argv[1] if sys.argv[1] else "data/test"
-    #threadpool = Pool(20)
+    try:
+        filename = sys.argv[1]
+    except IndexError:
+        filename = "test"
+    threadpool = Pool(20)
     #for line in bz2.BZ2File("data/persondata_en.nt.bz2", "rb"):
-    for line in open("%s/%s" % (DATA_DIR, filename), "rb"):
-        parse_life(line)
-    #with open("%s/%s" % (DATA_DIR, filename), "rb") as fin:
-        #threadpool.map(parse_tags, fin, 5)
+    with open("%s/%s" % (DATA_DIR, filename), "rb") as fin:
+        threadpool.map(parse_tags, fin, 5)
+        threadpool.map(parse_life, fin, 5)
+        threadpool.map(parse_date, fin, 5)
     #with bz2.BZ2File("data/geo_coordinates_en.nt.bz2", "rb") as fin:
     #   threadpool.map(parse_location, fin, 4)

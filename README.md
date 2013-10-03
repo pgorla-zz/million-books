@@ -15,11 +15,13 @@ Install the Python requirements with pip.
 
 Download Data
 -------------
-Run the scraping program to download and index book metatdata from Wikipedia.
+Download the persondata and geo\_coordinates from dbpedia.org.
 
 Index into Cassandra
 --------------------
-Index the data into Cassandra.
+Index the data into Cassandra by running the processor:
+
+    $ python process.py
 
 Notes
 -----

@@ -44,21 +44,16 @@ event_loc_pattern = re.compile(r'''\<http://dbpedia.org/resource/
         \>.*\"(?P<value>.*)\"
         ''', re.VERBOSE)
 
+pool = ConnectionPool("solr", ["localhost:9160"])
+location_cf = ColumnFamily(pool, "location")
+person_cf = ColumnFamily(pool, "person")
+
+batch = pycassa.batch.Mutator(pool) # default queue_size=100
 
 def parse(line):
-    pool = ConnectionPool("solr", ["localhost:9160"])
-    location_cf = ColumnFamily(pool, "location")
-    person_cf = ColumnFamily(pool, "person")
-
-    batch = pycassa.batch.Mutator(pool) # default queue_size=100
-
-    count = 0
     for f in [parse_birth_place, parse_birth_date, parse_tags]:
         vals = f(line)
         if vals is not None:
-            sys.stdout.write("\rIndexing %s documents." % count)
-            sys.stdout.flush()
-            count +=1
             batch.insert(person_cf, *vals)
 
     batch.send()
@@ -140,8 +135,9 @@ if __name__ == "__main__":
         filename = sys.argv[1]
     except IndexError:
         filename = "test"
-    threadpool = Pool(20)
+    threadpool = Pool(10)
     #for line in open("data/persondata", "rb"):
         #parse(line)
-    with bz2.BZ2File("data/persondata_en.nt.bz2", "rb") as fin:
-       threadpool.map(parse, fin, 4)
+    #with bz2.BZ2File("data/persondata_en.nt.bz2", "rb") as fin:
+    with open("data/test", "rb") as fin:
+       threadpool.map(parse, fin, 10)

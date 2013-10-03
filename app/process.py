@@ -14,7 +14,6 @@ from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 import pycassa
 
-import pysolr
 
 # TODO Split out tasks into threads.
 DATA_DIR = "data/"
@@ -25,7 +24,7 @@ kv_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         .*\"(?P<value>.*)   # Value
         \"''', re.VERBOSE)
 # Birth and death place
-event_loc_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
+birth_place_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         (?P<name>\w+)       # Resource name
         .*\>.*\<http://dbpedia.org/ontology/
         (?P<event>birthPlace|deathPlace)\> # Birth or death
@@ -33,25 +32,33 @@ event_loc_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         (?P<loc>.*)       # Location in which event occurred.
         \> .''', re.VERBOSE)
 # Birth and death date
-event_date_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
+birth_date_pattern = re.compile(r'''^\<http://dbpedia.org/resource/
         (?P<name>\w+)       # Resource name
         .*\>.*\<http://dbpedia.org/ontology/
         (?P<event>birthDate|deathDate)\> # Birth or death
         .*\"(?P<date>.*)\"  # Date
         ''', re.VERBOSE)
+event_loc_pattern = re.compile(r'''\<http://dbpedia.org/resource/
+        (?P<name>\w+)       # Resource name
+        .*\>.*(?P<event>lat|long|point) # Lat / Long / Point
+        \>.*\"(?P<value>.*)\"
+        ''', re.VERBOSE)
 
 
-def connect(fn):
+def parse(line):
     pool = ConnectionPool("solr", ["localhost:9160"])
     location_cf = ColumnFamily(pool, "location")
     person_cf = ColumnFamily(pool, "person")
 
     batch = pycassa.batch.Mutator(pool) # default queue_size=100
 
-    for f in [parse_tags, parse_location, parse_life, parse_date]:
+    count = 0
+    for f in [parse_birth_place, parse_birth_date, parse_tags]:
         vals = f(line)
-        print(vals)
         if vals is not None:
+            sys.stdout.write("\rIndexing %s documents." % count)
+            sys.stdout.flush()
+            count +=1
             batch.insert(person_cf, *vals)
 
     batch.send()
@@ -71,19 +78,19 @@ def match_pattern(pattern):
 
 ### Person Parsers ###
 
-@match_pattern(event_loc_pattern)
-def parse_life(vals):
+@match_pattern(birth_place_pattern)
+def parse_birth_place(vals):
     return (vals['name'], {
         "name": vals['name'],
         vals['event']: vals['loc']
         })
 
-@match_pattern(event_date_pattern)
-def parse_date(vals):
+@match_pattern(birth_date_pattern)
+def parse_birth_date(vals):
     try:
         date = datetime.strptime(vals['date'], "%Y-%m-%d")
     except ValueError:
-        date = None
+        date = datetime.now()
     try:
         shortname = vals['name'].split()[0]
     except IndexError:
@@ -104,15 +111,18 @@ def parse_tags(vals):
 
 ### Location Parsers ###
 
-@match_pattern(kv_pattern)
+@match_pattern(event_loc_pattern)
 def parse_location(vals):
+    if vals['event'] == "point":
+        point = vals['value'].split(" ")
+        vals['value'] = ','.join(point)
     return (vals['name'], {
         "name": vals['name'],
-        "location": vals['value']
+        vals['event']: vals['value']
         })
 
-@match_pattern(event_loc_pattern)
-def parse_life_location(vals):
+@match_pattern(birth_place_pattern)
+def parse_birth_place_to_location(vals):
     try:
         shortname = vals['name'].split()[0]
     except IndexError:
@@ -130,11 +140,8 @@ if __name__ == "__main__":
         filename = sys.argv[1]
     except IndexError:
         filename = "test"
-#    threadpool = Pool(20)
-    for line in open("data/persondata", "rb"):
-        connect(line)
-#        parse_location(line)
-    #with open("%s/%s" % (DATA_DIR, filename), "rb") as fin:
-    #    threadpool.map(parse, fin, 5)
-    #with bz2.BZ2File("data/geo_coordinates_en.nt.bz2", "rb") as fin:
-    #   threadpool.map(parse_location, fin, 4)
+    threadpool = Pool(20)
+    #for line in open("data/persondata", "rb"):
+        #parse(line)
+    with bz2.BZ2File("data/persondata_en.nt.bz2", "rb") as fin:
+       threadpool.map(parse, fin, 4)

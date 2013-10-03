@@ -28,6 +28,9 @@
 
     <!-- Faux multivalued field. We do what we can. -->
     <dynamicField name="*_tag"  type="text" indexed="true"  stored="true"/>
+
+    <!-- Ignore anything that doesn't match the schema -->
+    <dynamicField name="*"  type="ignored" multiValued="true"/>
  </fields>
 
  <types>
@@ -55,6 +58,8 @@
         <filter class="solr.PorterStemFilterFactory"/>
       </analyzer>
     </fieldType>
+
+    <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" />
 
  </types>
 

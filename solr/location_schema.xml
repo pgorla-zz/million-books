@@ -19,11 +19,16 @@
  <fields>
     <field name="id"  type="string" indexed="true"  stored="true"/>
     <field name="name"  type="text" indexed="true"  stored="true"/>
-    <field name="tags"  type="text" indexed="true"  stored="true" multiValued="true"/>
-    <field name="location"  type="location" indexed="true"  stored="true"/>
+    <field name="point"  type="location" indexed="true"  stored="true"/>
+
+    <field name="lat" type="tdouble" indexed="true" stored="true"/>
+    <field name="long" type="tdouble" indexed="true" stored="true"/>
 
     <dynamicField name="*_coordinate" type="tdouble" indexed="true" stored="true"/>
     <dynamicField name="*_person" type="text" indexed="true" stored="true"/>
+
+    <!-- Ignore anything that doesn't match the schema -->
+    <dynamicField name="*"  type="ignored" multiValued="true"/>
  </fields>
 
  <types>
@@ -52,6 +57,8 @@
         <filter class="solr.PorterStemFilterFactory"/>
       </analyzer>
     </fieldType>
+
+    <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" />
 
  </types>
 

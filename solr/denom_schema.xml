@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<schema name="denom" version="1.5">
+ <fields>
+    <field name="id"  type="string" indexed="true"  stored="true"/>
+    <field name="name"  type="text" indexed="true"  stored="true"/>
+
+    <!-- birth date, death date -->
+    <dynamicField name="*Date" type="date" indexed="true" stored="true"/>
+
+    <!-- birth place, death place -->
+    <dynamicField name="*Place" type="text" indexed="true" stored="true"/>
+
+    <!-- Lat/Lon locations of birth and death -->
+    <dynamicField name="*Point" type="location" indexed="true" stored="true"/>
+    <dynamicField name="*_lat" type="tdouble" indexed="true" stored="true"/>
+    <dynamicField name="*_long" type="tdouble" indexed="true" stored="true"/>
+
+    <!-- Coordinate fields -->
+    <dynamicField name="*_coordinate" type="tdouble" indexed="true" stored="true"/>
+    <!-- Faux multivalued field. We do what we can. -->
+    <dynamicField name="*_tag"  type="text" indexed="true"  stored="true"/>
+
+    <!-- Ignore anything that doesn't match the schema -->
+    <dynamicField name="*"  type="ignored" multiValued="true"/>
+ </fields>
+
+ <types>
+  <fieldType name="string" class="solr.StrField"/>
+  <fieldType name="date" class="solr.TrieDateField"/>
+
+  <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
+  <fieldType name="tdouble" class="solr.TrieDoubleField" precisionStep="8" positionIncrementGap="0"/>
+
+  <fieldType name="text" class="solr.TextField" positionIncrementGap="100">
+      <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <!--
+        <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+        <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/> -->
+        <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.EnglishPossessiveFilterFactory"/>
+        <filter class="solr.PorterStemFilterFactory"/>
+      </analyzer>
+      <analyzer type="query">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.EnglishPossessiveFilterFactory"/>
+        <filter class="solr.PorterStemFilterFactory"/>
+      </analyzer>
+    </fieldType>
+
+    <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" />
+
+ </types>
+
+<defaultSearchField>name</defaultSearchField>
+<uniqueKey>id</uniqueKey>
+
+</schema>
+
